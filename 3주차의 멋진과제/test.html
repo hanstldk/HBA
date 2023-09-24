@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script>
+    window.onload=function(){
+        var logbt=document.getElementById("bt");
+        var logip=document.getElementById("ipID");
+        var pic=document.getElementById("pic");
+        var lgA=document.getElementById("lgA");
+        let state=0;
+        logbt.onclick = login;
+        function login(){
+            if(logip.value=="이은석"&&state==0){
+                pic.style.visibility="visible";
+                logbt.innerHTML="로그아웃";
+                lgA.innerHTML="닉네임 : 이은석";
+                state=1;
+            }
+            else if(state==1){
+                pic.style.visibility="hidden";
+                logbt.innerHTML="로그인";
+                lgA.innerHTML="로그아웃 했습니다.";
+                state=0;
+            }
+            else{
+                lgA.innerHTML="없는 아이디입니다.";
+                state=0;
+            }                
+        }
+
+
+        var bt1=document.getElementById("bt1");
+        var bt2=document.getElementById("bt2");
+        var bt3=document.getElementById("bt3");
+        var sec3=document.getElementById("sec3");
+        var state2=0;
+
+        let str1="나는 이은석입니다"
+        let str2="유한대 최고의 교수입니다."
+        let str3=""
+        var nowtext;
+
+        bt1.onclick=bt1click;
+        bt2.onclick=bt2click;
+        bt3.onclick=bt3click;
+        
+
+        function bt1click(){
+            if(state2==2&&str1==""){
+                str2="";
+                str1=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(state2==3&&str1==""){
+                str3="";
+                str1=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(str1!=""){
+                sec3.innerHTML=str1;
+                nowtext=str1;
+                state2=1;
+            }
+            else if(sec3.innerHTML=="저장되었습니다."&&str1==""){
+                alert("내용이 없습니다.")
+            }
+        }
+        function bt2click(){
+            if(state2==1&&str2==""){
+                str1="";
+                str2=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(state2==3&&str2==""){
+                str3="";
+                str2=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(str2!=""){
+                sec3.innerHTML=str2;
+                nowtext=str2;
+                state2=2;
+            }
+            else if(sec3.innerHTML=="저장되었습니다."&&str2==""){
+                alert("내용이 없습니다.")
+            }
+        }
+        function bt3click(){
+            if(state2==1&&str3==""){
+                str1="";
+                str3=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(state2==2&&str3==""){
+                str2="";
+                str3=nowtext;
+                sec3.innerHTML="저장되었습니다."
+            }
+            else if(str3!=""){
+                sec3.innerHTML=str3;
+                nowtext=str3;
+                state2=3;
+            }
+            else if(sec3.innerHTML=="저장되었습니다."&&str3==""){
+                alert("내용이 없습니다.")
+            }
+        }
+
+
+        
+    }
+</script>
+<style>
+    *{margin: 0px; padding: 0px;}
+    #body{
+        width:90%;
+        background-color: black;
+        display: flex;
+        flex-flow: wrap;
+        margin-left:5%;
+    }
+    #sec1{
+        width:100%;
+        background-color: blue;
+        height: 200px;
+        display: flex;
+        position:relative;
+    }
+    #sec2{
+        width:45%;
+        background-color: green;
+        height:500px;
+    }
+    #sec3{
+        width:54%;
+        background-color: brown;
+        height:500px;
+    }
+    button{
+        margin-left:5%;
+        margin-bottom:10px;
+        width: 90%;
+        height:150px;
+        font-size:20px;
+    }
+    #bt1{
+        margin-top:10px;
+    } 
+    #ipID{
+        margin-top: 20px;
+        margin-left: 5%;
+        height: 20px;
+    }
+    #bt{
+        margin-top: 20px;
+        width:165px;
+        height: 25px;
+        font-size: 10px;
+        position: absolute;
+        top:80px;
+    
+    }
+    img{
+        margin-left:20px;
+        height: 200px;
+        width:23%;
+        visibility: hidden;
+    }
+    #lgA{
+        padding-top: 20px;
+        font:20px;
+        color:white;
+        width:30%;
+    }
+</style>
+<body>
+    <div id="body">
+            <div id="sec1">
+                <input type="text" id="ipID">
+                <button id="bt">
+                    로그인
+                </button>
+                <img src="prof.png" alt="" id="pic">
+                <div id="lgA"></div>
+            </div>
+            <div id="sec2">
+                <button id="bt1">버튼1</button>
+                <button id="bt2">버튼2</button>
+                <button id="bt3">버튼3</button>
+            </div>
+            <div id="sec3"></div>
+    </div>
+</body>
+</html>
