@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        document.getElementById("fetchDataButton").addEventListener("click", fetchData);
+
+        function fetchData() {
+            fetch("http://localhost:8090/hi") 
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("response").innerText = data;
+            })
+            .catch(error => {
+                console.error("API 호출 중 오류 발생:", error);
+            });
+        }
+    });
+</script>
+<body>
+    <button id="fetchDataButton">hi 호출 데이터 받아오기</button>
+    <p id="response"></p>
+</body>
+</html>
