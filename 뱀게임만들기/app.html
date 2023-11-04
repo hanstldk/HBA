@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>와 너무 재밌는 뱀게임</title>
+</head>
+<body>
+    <canvas id="myCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById("myCanvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = 1800;
+        canvas.height = 850;
+
+        const circleCount = 3;
+        let circleSpacing = 7;
+        const circleDiameter = 21;
+
+        let lerpFactor = 0.01;
+        
+
+        const appleDiameter = 30;
+
+        const rangeWidth = 700;
+        const rangeHeight = 350;
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        const startX = centerX - rangeWidth / 2;
+        const startY = centerY - rangeHeight / 2;
+
+        let circles = [];
+
+        const mouse = {
+            x: canvas.width / 2,
+            y: canvas.height / 2
+        };
+
+        // 장애물들을 저장할 배열
+        let obstacles = [];
+
+        // 장애물의 속도와 크기
+        const obstacleSpeed = 2;
+        const obstacleSize = 20;
+
+        let score=0;
+
+        var isGameOver=false;
+
+        
+
+
+        var grdRadial = ctx.createRadialGradient(0, 0, obstacleSize / 10, 0, 0, obstacleSize);
+        grdRadial.addColorStop(0, '#FF82FF'); 
+        grdRadial.addColorStop(1, '#FF1493'); 
+        var grd = ctx.createLinearGradient(-obstacleSize, obstacleSize, obstacleSize, -obstacleSize);
+        grd.addColorStop(0, '#FFC81E'); 
+        grd.addColorStop(0.5, '#FF8200'); 
+        grd.addColorStop(1, '#FF7F50'); 
+
+
+        let startTime = Date.now(); // 시작 시간을 기록합니다.
+
+        let difficulty=0.01;
+
+        var img = new Image();
+        img.src = 'go.png';
+        img.onload = function() {
+        // 캔버스 전체에 이미지를 배경으로 채웁니다.
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // 추가로 그리기 작업을 여기서 수행할 수 있습니다.
+        // 예: 다른 도형을 그리거나, 텍스트를 추가할 수 있습니다.
+        };
+        // 이미지의 경로를 설정합니다. 로컬이나 원격 URL일 수 있습니다.
+
+
+        function drawDuration() {
+            const elapsed = Date.now() - startTime; // 경과 시간을 밀리초 단위로 계산합니다.
+            const seconds = Math.floor(elapsed / 1000); // 밀리초를 초 단위로 변환합니다.
+            if(seconds%10==0){
+                difficulty+=0.00005;
+            }
+      
+            ctx.font = '38px Arial'; // 폰트 크기와 스타일을 설정합니다.
+            ctx.fillStyle = 'red'; // 글자 색을 검정으로 설정합니다.
+            ctx.textAlign = 'center'; // 텍스트 정렬을 중앙으로 설정합니다.
+            ctx.fillText(`지속시간:${seconds}초`, canvas.width/2-500, (canvas.height/2)-350);
+            ctx.fillText(`뱀길이:${circles.length}개`, canvas.width/2+500, (canvas.height/2)-350);
+            ctx.fillText(`점수:${score}`, canvas.width/2, (canvas.height/2)-350); // 지속 시간(초)을 캔버스 중앙에 그립니다.
+
+        }
+
+
+
+        
+
+        for (let i = 0; i < circleCount; i++) {
+            circles.push({
+                x: canvas.width / 2 - (circleDiameter + circleSpacing) * i,
+                y: canvas.height / 2,
+            });
+        }
+
+        let apple = {
+            x: startX + Math.random() * rangeWidth,
+            y: startY + Math.random() * rangeHeight,
+            color: "red",
+        };
+
+        document.addEventListener('mousedown', function(event) {
+            circleSpacing=11;
+            lerpFactor=0.03;
+        });
+
+        // mouseup 이벤트 리스너
+        document.addEventListener('mouseup', function(event) {
+            circleSpacing=7;
+            lerpFactor=0.01;
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            mouse.x = e.clientX - canvas.getBoundingClientRect().left;
+            mouse.y = e.clientY - canvas.getBoundingClientRect().top;
+        });
+
+        // 충돌 감지 함수
+        function checkCollision(ob1, ob2) {
+        const dx = ob1.x - ob2.x;
+        const dy = ob1.y - ob2.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < ob1.size + ob2.size;
+        }
+
+        // 장애물 생성
+        function createObstacle() {
+        const type = Math.floor(Math.random() * 3); // 0: 삼각형, 1: 사각형, 2: 원
+        let x, y, angle;
+
+        // 장애물이 캔버스의 바깥에서 시작되도록 위치를 무작위로 결정
+        if (Math.random() < 0.5) {
+            x = Math.random() < 0.5 ? 0 - obstacleSize : canvas.width + obstacleSize;
+            y = Math.random() * canvas.height;
+        } else {
+            x = Math.random() * canvas.width;
+            y = Math.random() < 0.5 ? 0 - obstacleSize : canvas.height + obstacleSize;
+        }
+
+        // 캔버스 중앙을 향하는 각도
+        angle = Math.atan2(canvas.height / 2 - y, canvas.width / 2 - x);
+
+        const dx = obstacleSpeed * Math.cos(angle);
+        const dy = obstacleSpeed * Math.sin(angle);
+        const rotationSpeed = Math.random() * 0.05 + 0.01; // 장애물 회전 속도
+
+        obstacles.push({ type, size: obstacleSize, x, y, dx, dy, rotation: 0, rotationSpeed });
+        }
+
+        // 장애물 업데이트
+        function updateObstacles() {
+        obstacles.forEach((obs, index) => {
+            // 장애물의 위치 업데이트
+            obs.x += obs.dx;
+            obs.y += obs.dy;
+            // 장애물의 회전 업데이트
+            obs.rotation += obs.rotationSpeed;
+
+            // 화면 밖으로 나가면 제거
+            if (
+            obs.x < -obs.size || obs.x > canvas.width + obs.size ||
+            obs.y < -obs.size || obs.y > canvas.height + obs.size
+            ) {
+            obstacles.splice(index, 1);
+            }
+
+            // 다른 장애물과의 충돌 검사
+            obstacles.forEach((otherObs, otherIndex) => {
+            if (index != otherIndex && checkCollision(obs, otherObs)) {
+                // 간단한 반사 처리, 현실적인 물리 처리를 위해서는 더 복잡한 계산 필요
+                const tempDx = obs.dx;
+                const tempDy = obs.dy;
+                obs.dx = otherObs.dx;
+                obs.dy = otherObs.dy;
+                otherObs.dx = tempDx;
+                otherObs.dy = tempDy;
+            }
+            });
+        });
+        }
+
+        // 장애물 그리기
+        function drawObstacle(obstacle) {
+        ctx.save();
+        ctx.translate(obstacle.x, obstacle.y);
+        ctx.rotate(obstacle.rotation);
+
+        switch (obstacle.type) {
+            case 0: // 삼각형
+            ctx.beginPath();
+            ctx.fillStyle=grd;
+            ctx.moveTo(0, -obstacle.size);
+            ctx.lineTo(obstacle.size, obstacle.size);
+            ctx.lineTo(-obstacle.size, obstacle.size);
+            ctx.closePath();
+            ctx.fill();
+            break;
+            case 1: // 사각형
+            ctx.fillStyle=grdRadial;
+            ctx.fillRect(-obstacle.size / 2, -obstacle.size / 2, obstacle.size, obstacle.size);
+            break;
+            case 2: // 원
+            // ctx.beginPath();
+            // ctx.fillStyle='green';
+            // ctx.arc(0, 0, obstacle.size, 0, Math.PI * 2);
+            // ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, obstacle.size, 0, Math.PI * 2, true); // 중심 (0,0)에 반지름 obstacle.size
+            ctx.fillStyle = '#88CCEE';
+            ctx.fill();
+            ctx.closePath();
+            
+            // 귀
+            ctx.beginPath();
+            ctx.arc(-obstacle.size * 0.7, -obstacle.size * 0.4, obstacle.size / 5, 0, Math.PI * 2, true); // 왼쪽 귀
+            ctx.arc(obstacle.size * 0.7, -obstacle.size * 0.4, obstacle.size / 5, 0, Math.PI * 2, true); // 오른쪽 귀
+            ctx.fillStyle = '#88CCEE';
+            ctx.fill();
+            ctx.closePath();
+            
+            // 눈
+            ctx.beginPath();
+            ctx.ellipse(-obstacle.size / 3, -obstacle.size / 10, obstacle.size / 4, obstacle.size / 2, Math.PI / 10, 0, Math.PI * 2); // 왼쪽 눈
+            ctx.ellipse(obstacle.size / 3, -obstacle.size / 10, obstacle.size / 4, obstacle.size / 2, -Math.PI / 10, 0, Math.PI * 2); // 오른쪽 눈
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.closePath();
+            
+            // 눈동자
+            ctx.beginPath();
+            ctx.arc(-obstacle.size / 3, -obstacle.size / 10, obstacle.size / 10, 0, Math.PI * 2, true); // 왼쪽 눈동자
+            ctx.arc(obstacle.size / 3, -obstacle.size / 10, obstacle.size / 10, 0, Math.PI * 2, true); // 오른쪽 눈동자
+            ctx.fillStyle = 'black';
+            ctx.fill();
+            ctx.closePath();
+            
+            // 코
+            ctx.beginPath();
+            ctx.arc(0, obstacle.size / 10, obstacle.size / 10, 0, Math.PI * 2, true); // 코
+            ctx.fillStyle = 'orange';
+            ctx.fill();
+            ctx.closePath();
+            
+            // 입
+            ctx.beginPath();
+            ctx.arc(0, obstacle.size / 2, obstacle.size / 3, 0, Math.PI, false); // 입
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+            ctx.closePath();
+            
+            // 볼
+            ctx.beginPath();
+            ctx.arc(-obstacle.size / 2, obstacle.size / 2, obstacle.size / 10, 0, Math.PI * 2, true); // 왼쪽 볼
+            ctx.arc(obstacle.size / 2, obstacle.size / 2, obstacle.size / 10, 0, Math.PI * 2, true); // 오른쪽 볼
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.closePath();
+            break;
+        }
+
+        ctx.restore();
+        }
+
+
+
+
+        function moveCircles(){
+            circles[0].x += (mouse.x - circles[0].x) * lerpFactor;
+            circles[0].y += (mouse.y - circles[0].y) * lerpFactor;
+
+            // 나머지 원들을 이전 원이 있던 위치로 이동합니다.
+            for (let i = 1; i < circles.length; i++) {
+                const dx = circles[i - 1].x - circles[i].x;
+                const dy = circles[i - 1].y - circles[i].y;
+                const angle = Math.atan2(dy, dx);
+                
+                circles[i].x = circles[i - 1].x - Math.cos(angle) * circleSpacing;
+                circles[i].y = circles[i - 1].y - Math.sin(angle) * circleSpacing;
+            }
+
+            // 충돌 검사
+            const dx = circles[0].x - apple.x;
+            const dy = circles[0].y - apple.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < (circleDiameter + appleDiameter) / 2) {
+                // 사과를 먹었을 때 몸통이 늘어나고, 사과를 새로운 위치에 생성
+                circles.push({
+                    x: circles[circles.length - 1].x,
+                    y: circles[circles.length - 1].y,
+                });
+
+                apple = {
+                    x: startX + Math.random() * rangeWidth,
+                    y: startY + Math.random() * rangeHeight,
+                    color: "red",
+                };
+                score+=10;
+            }
+        }
+
+        function drawCircles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.font = '100px Arial'; // 폰트 크기와 스타일을 설정합니다.
+            ctx.fillStyle = '#008C8C';
+            ctx.fillText(`무량공처`, canvas.width/2, (canvas.height/2)+200);
+            ctx.fillText(`無量空処`, canvas.width/2, (canvas.height/2)+300);
+
+            circles.forEach((circle) => {
+                ctx.beginPath();
+                ctx.arc(circle.x, circle.y, circleDiameter / 2, 0, Math.PI * 2);
+
+                // 그라디언트를 생성합니다.
+                var gradient = ctx.createRadialGradient(circle.x, circle.y, circleDiameter / 4, circle.x, circle.y, circleDiameter / 2);
+                gradient.addColorStop(0, 'blue');
+                gradient.addColorStop(0.5, 'white');
+                gradient.addColorStop(1, 'blue');
+
+                // 그라디언트를 채움색으로 설정합니다.
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.closePath();
+
+                // 중첩되는 원을 추가하여 복잡성을 더합니다.
+                ctx.beginPath();
+                ctx.arc(circle.x, circle.y, circleDiameter / 7, 0, Math.PI * 2);
+                ctx.strokeStyle = 'gold';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.closePath();
+            });
+
+            ctx.beginPath();
+            ctx.arc(apple.x, apple.y, appleDiameter / 2, 0, Math.PI * 2);
+            ctx.fillStyle = apple.color;
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(apple.x-5, apple.y-3, 6, 0, Math.PI * 2); // 하이라이트를 위한 작은 원을 그립니다.
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; // 채울 색을 흰색의 투명한 색으로 설정합니다.
+            ctx.fill(); // 하이라이트를 채색합니다.
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.moveTo(apple.x, apple.y-10); // 꼭지의 시작점을 정합니다.
+            ctx.lineTo(apple.x, apple.y-15); // 꼭지의 끝점을 정합니다.
+            ctx.strokeStyle = 'brown'; // 선의 색을 갈색으로 설정합니다.
+            ctx.lineWidth = 5; // 선의 굵기를 설정합니다.
+            ctx.stroke(); // 꼭지를 그립니다.
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(apple.x-5, apple.y-15, 5, 0, Math.PI, true); // 반원을 그려 잎사귀의 형태를 만듭니다.
+            ctx.fillStyle = 'green'; // 채울 색을 초록색으로 설정합니다.
+            ctx.fill(); // 잎사귀를 채색합니다.
+            ctx.closePath();
+            ctx.arc(apple.x+5, apple.y-15, 5, 0, Math.PI, true); // 반원을 그려 잎사귀의 형태를 만듭니다.
+            ctx.fillStyle = 'green'; // 채울 색을 초록색으로 설정합니다.
+            ctx.fill(); // 잎사귀를 채색합니다.
+            ctx.closePath();
+        }
+
+
+        function checkCircleObstacleCollision(circle, obstacle) {
+            const dx = circle.x - obstacle.x;
+            const dy = circle.y - obstacle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // 원의 반지름과 장애물의 반지름을 더한 값보다 거리가 작거나 같으면 충돌로 간주
+            if (distance < circleDiameter / 2 + obstacle.size) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // 모든 원과 장애물 사이의 충돌 검사를 수행하고 처리하는 함수
+        function handleCollisions() {
+            if(!isGameOver){
+                circles.forEach((circle) => {
+                    obstacles.forEach((obstacle, index) => {
+                        if (checkCircleObstacleCollision(circle, obstacle)) {
+                            isGameOver = true;
+                            gameOver(score);
+                            showRanking(JSON.parse(localStorage.getItem("scores")));
+                            initGame();
+                        }
+                    });
+                });
+            }
+        }
+
+
+        function gameOver(score) {
+            // 사용자에게 닉네임 입력 받기
+            var nickname = prompt("게임오버! 닉네임을 입력하세요:");
+            if(nickname===null||nickname.trim()===""){
+                nickname="익명";
+            }   
+            // 로컬 스토리지에서 기존 점수 목록을 가져오기
+            var scores = JSON.parse(localStorage.getItem("scores")) || [];       
+            // 새로운 점수를 목록에 추가
+            scores.push({ nickname: nickname, score: score });       
+            // 점수를 내림차순으로 정렬
+            scores.sort(function(a, b) {
+                return b.score - a.score;
+            });     
+            // 로컬 스토리지에 업데이트된 점수 목록 저장
+            localStorage.setItem("scores", JSON.stringify(scores));
+        }
+
+        function showRanking(scores) {
+        // 랭킹 문자열 초기화
+            var rankingString = "게임랭킹\n";
+
+            // 각각의 점수에 대해 랭킹 문자열에 추가
+            scores.forEach(function(score, index) {
+                rankingString += (index + 1) + ". " + score.nickname + " - " + score.score + "\n";
+            });
+
+            // 알림창으로 랭킹 표시
+            alert(rankingString);
+        }
+
+
+        function initGame(){
+            startTime = Date.now();
+            circles.length = 0;
+            obstacles.length = 0;
+            mouse.x = canvas.width / 2;
+            mouse.y = canvas.height / 2;
+            for (let i = 0; i < circleCount; i++) {
+                circles.push({
+                    x: canvas.width / 2 - (circleDiameter + circleSpacing) * i,
+                    y: canvas.height / 2,
+                });
+            }
+            apple = {
+                x: startX + Math.random() * rangeWidth,
+                y: startY + Math.random() * rangeHeight,
+                color: "red",
+            };
+            difficulty=0.01;
+            score=0;
+            isGameOver = false;
+        }
+
+
+
+
+        function gameLoop(){
+            moveCircles();
+            drawCircles();
+            handleCollisions();
+            if (Math.random() < difficulty){
+                createObstacle();
+            }
+            updateObstacles();
+            obstacles.forEach(drawObstacle);
+            drawDuration();
+        }
+
+        setInterval(gameLoop,1000/60);
+    </script>
+</body>
+</html>
